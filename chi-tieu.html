@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Quản lý chi tiêu của Như</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+table th{text-align:left}
+body{margin:0;font-family:Arial;background:#eef1f5}
+.container{max-width:1200px;margin:auto;padding:20px}
+
+h1{text-align:center}
+.layout{display:grid;grid-template-columns:360px 1fr;gap:20px}
+.card{background:#fff;padding:15px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+input,select,button{width:100%;height:42px;margin-bottom:10px;padding:0 10px;border-radius:8px;border:1px solid #ccc;box-sizing:border-box}
+button{background:#4CAF50;color:#fff;border:none;cursor:pointer}
+button.secondary{background:#4F94CD}
+button.danger{background:#00688B}
+
+.dashboard{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:10px;
+margin-bottom:15px;
+}
+
+.box{
+    padding:12px;
+    border-radius:10px;
+    text-align:center;
+    font-weight:bold;
+    min-width:150px;       /* cố định độ rộng tối thiểu */
+}
+
+.box span{
+    display:block;
+    margin-top:6px;
+    font-size:18px;
+    white-space:nowrap;    /* không cho xuống dòng */
+}
+
+.box span{display:block;margin-top:6px;font-size:18px}
+.total{background:#e3f2fd}
+.salary{background:#e8f5e9}
+.current{background:#ede7f6}
+.cash{background:#fff8e1}
+.remain{background:#fff3e0}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px solid #ddd;padding:8px}
+canvas{max-width:350px;margin:20px auto;display:block}
+
+
+/* ===== MÀU SẮC ===== */
+.edit-btn{
+    background:#1e78b0;
+    color:white;
+}
+
+
+.report-row{
+    display:flex;
+    gap:15px;
+    justify-content:center;
+    margin-top:15px;
+}
+
+.btn-report{
+    width:220px;
+    height:45px;
+    border:none;
+    border-radius:8px;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+
+.blue{
+    background:#2f86d6;
+}
+
+.green{
+    background:#4CAF50;
+}
+
+.btn-report:hover{
+    opacity:0.9;
+}
+
+<style>
+table th{text-align:left}
+body{margin:0;font-family:Arial;background:#eef1f5}
+...
+.btn-report:hover{
+    opacity:0.9;
+}
+
+
+/* ===== SỬA PHÂN TRANG ===== */
+
+.pagination{
+    display:flex;
+    gap:8px;
+    margin-top:15px;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+}
+
+/* ===== PHÂN TRANG ===== */
+
+.pagination{
+display:flex;
+gap:6px;
+margin-top:10px;
+flex-wrap:wrap;
+justify-content:flex-end;   /* CĂN PHẢI */
+}
+
+.pagination button{
+width:auto;
+min-width:32px;
+height:30px;
+padding:0 8px;
+border-radius:6px;
+background:#4CAF50;
+color:#fff;
+}
+
+.pagination button.active{
+background:#2f86d6;
+}
+
+.page-control{
+margin-top:8px;
+display:flex;
+align-items:center;
+gap:8px;
+font-size:13px;
+justify-content:flex-end;   /* CĂN PHẢI */
+}
+
+.rows-select{
+width:70px;
+height:30px;
+}
+
+#exportCategory{
+    background:#e3f2fd;
+    border:2px solid #2f86d6;
+    font-weight:bold;
+    color:#0d47a1;
+}
+
+#exportCategory:focus{
+    outline:none;
+    border-color:#1565c0;
+    box-shadow:0 0 6px rgba(21,101,192,0.4);
+}
+
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>QUẢN LÝ CHI TIÊU CÁ NHÂN</h1>
+
+<div class="layout">
+
+<div class="card">
+<h3>➕ Thêm / Sửa chi tiêu</h3>
+
+<input id="name" placeholder="Tên khoản chi">
+<input id="amount" placeholder="Số tiền">
+
+<select id="category">
+<option>Ăn uống</option>
+<option>Đi lại</option>
+<option>Mua sắm</option>
+<option>Mua vé số</option>
+<option>Rút tiền</option>
+<option>Sinh hoạt cá nhân</option>
+<option>Nuôi bạn trai</option>
+</select>
+
+<select id="source">
+<option value="">-- Trừ vào --</option>
+<option value="salary">💼 Tiền lương</option>
+<option value="cash">💵 Tiền mặt</option>
+<option value="current">💳 Tiền ngân hàng</option>
+<option value="saving">🏦 Tiền tiết kiệm</option>
+
+</select>
+
+<input id="date" type="date">
+<button id="saveBtn" onclick="saveExpense()">💾 Thêm</button>
+
+<hr>
+
+<h3>💼 Tiền lương</h3>
+<input id="salary">
+<button class="secondary" onclick="addMoney('salary')">➕ Cộng</button>
+<button class="edit-btn" onclick="editMoney('salary')">📝 Sửa</button>
+<button class="danger" onclick="resetMoney('salary')">🔄 Reset</button>
+
+<h3>💵 Tiền mặt</h3>
+<input id="cashMoney">
+<button class="secondary" onclick="addMoney('cash')">➕ Cộng</button>
+<button class="edit-btn" onclick="editMoney('cash')">📝 Sửa</button>
+<button class="danger" onclick="resetMoney('cash')">🔄 Reset</button>
+
+<h3>💳 Tiền bank</h3>
+<input id="currentMoney">
+<button class="secondary" onclick="addMoney('current')">➕ Cộng</button>
+<button class="edit-btn" onclick="editMoney('current')">📝 Sửa</button>
+<button class="danger" onclick="resetMoney('current')">🔄 Reset</button>
+
+<h3>🏦 Tiền tiết kiệm</h3>
+<input id="savingMoney">
+<button class="secondary" onclick="addMoney('saving')">➕ Cộng</button>
+<button class="edit-btn" onclick="editMoney('saving')">📝 Sửa</button>
+<button class="danger" onclick="resetMoney('saving')">🔄 Reset</button>
+
+<h3>💎 Tiền không lưu thông</h3>
+<input id="lockedMoneyInput" type="number" min="0" placeholder="Nhập số lượng">
+<button class="secondary" onclick="addMoney('locked')">➕ Cộng</button>
+<button class="danger" onclick="resetMoney('locked')">🔄 Reset</button>
+
+</div>
+
+<div class="card">
+<button class="btn-report" 
+style="background:#0000CD;width:220px"
+onclick="showBackupList()">
+💾 Xem backup
+</button>
+
+<div class="dashboard">
+
+<div class="box total">Tổng chi<span id="totalBox">0</span></div>
+<div class="box salary">Tiền lương<span id="salaryBox">0</span></div>
+<div class="box current">Tiền bank<span id="currentBox">0</span></div>
+<div class="box cash">Tiền mặt<span id="cashBox">0</span></div>
+<div class="box" style="background:#e0f7fa">Tiền tiết kiệm<span id="savingBox">0</span></div>
+<div class="box remain">Tổng còn lại<span id="remainValue">0</span></div>
+<div class="box" style="background:#fce4ec">Tiền không lưu thông<span id="lockedBox">0 cái</span></div>
+
+</div>
+
+<table class="table">
+<thead>
+<tr>
+<th>Ngày</th>
+<th>Tên</th>
+<th>Loại</th>
+<th>Số tiền</th>
+<th>Trừ từ</th>
+<th>Thao tác</th>
+</tr>
+</thead>
+<tbody id="list"></tbody>
+</table>
+
+<div class="page-control">
+Hiển thị
+<select id="itemsPerPageSelect" class="rows-select" onchange="changeItemsPerPage()">
+<option value="5">5</option>
+<option value="10">10</option>
+<option value="20">20</option>
+</select>
+/trang
+</div>
+
+<div id="pagination" class="pagination"></div>
+
+<div class="report-row">
+<select id="exportCategory" style="width:220px;margin-bottom:10px">
+<option value="all">📂 Xuất tất cả</option>
+<option>Ăn uống</option>
+<option>Đi lại</option>
+<option>Mua sắm</option>
+<option>Mua vé số</option>
+<option>Rút tiền</option>
+<option>Sinh hoạt cá nhân</option>
+<option>Nuôi bạn trai</option>
+</select>
+
+    <button id="btnExport" class="btn-report blue" onclick="exportPDF()">
+    	📄 Xuất báo cáo
+    </button>
+
+    <button class="btn-report green" onclick="printReport()">
+        🖨 In báo cáo
+    </button>
+</div>
+
+<canvas id="pieChart"></canvas>
+
+</div>
+</div>
+</div>
+
+<script>
+
+let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+let salary = Number(localStorage.getItem("salary")) || 0;
+let currentMoney = Number(localStorage.getItem("currentMoney")) || 0;
+let cashMoney = Number(localStorage.getItem("cashMoney")) || 0;
+let lockedMoney = Number(localStorage.getItem("lockedMoney")) || 0;
+let savingMoney = Number(localStorage.getItem("savingMoney")) || 0;
+
+let editIndex = -1;
+let pieChart;
+
+let currentPage = 1;
+let itemsPerPage = 5;
+
+const $ = id => document.getElementById(id);
+
+function formatMoney(v){
+return v.replace(/\D/g,"").replace(/\B(?=(\d{3})+(?!\d))/g,".");
+}
+
+["amount","salary","currentMoney","cashMoney","savingMoney"].forEach(id=>{
+$(id).addEventListener("input",e=>e.target.value=formatMoney(e.target.value));
+});
+
+// Viết hoa chữ cái đầu
+$("name").addEventListener("input", function () {
+if(this.value.length>0){
+this.value=this.value.charAt(0).toUpperCase()+this.value.slice(1);
+}
+});
+
+function addMoney(type){
+
+if(type==="locked"){
+let v = Number($("lockedMoneyInput").value);
+if(!v) return;
+lockedMoney += v;
+localStorage.setItem("lockedMoney",lockedMoney);
+$("lockedMoneyInput").value="";
+render();
+return;
+}
+
+let input =
+type==="salary" ? $("salary") :
+type==="current" ? $("currentMoney") :
+type==="cash" ? $("cashMoney") :
+$("savingMoney");
+
+let v=Number(input.value.replace(/\./g,""));
+if(!v) return;
+
+if(type==="salary"){salary+=v;localStorage.setItem("salary",salary);}
+if(type==="current"){currentMoney+=v;localStorage.setItem("currentMoney",currentMoney);}
+if(type==="cash"){cashMoney+=v;localStorage.setItem("cashMoney",cashMoney);}
+if(type==="saving"){savingMoney+=v;localStorage.setItem("savingMoney",savingMoney);}
+
+input.value="";
+render();
+}
+
+function saveExpense(){
+
+let name = $("name").value.trim();
+let amount = Number($("amount").value.replace(/\./g,""));
+let category = $("category").value;
+let selectedDate = $("date").value;
+let source = $("source").value;
+
+if(!name || !amount || !selectedDate || !source){
+    Swal.fire("Thiếu thông tin","","warning");
+    return;
+}
+
+// tạo thời gian đầy đủ (ngày + giờ hiện tại)
+let now = new Date();
+let fullDate = new Date(
+    selectedDate + "T" +
+    now.getHours().toString().padStart(2,"0") + ":" +
+    now.getMinutes().toString().padStart(2,"0") + ":" +
+    now.getSeconds().toString().padStart(2,"0")
+);
+
+if(editIndex === -1){
+
+    // ===== THÊM MỚI =====
+    if(source==="salary"){
+        if(salary < amount) return Swal.fire("Không đủ lương");
+        salary -= amount;
+    }
+
+    if(source==="current"){
+        if(currentMoney < amount) return Swal.fire("Không đủ tiền ngân hàng");
+        currentMoney -= amount;
+    }
+
+    if(source==="cash"){
+        if(cashMoney < amount) return Swal.fire("Không đủ tiền mặt");
+        cashMoney -= amount;
+    }
+
+    if(source==="saving"){
+    if(savingMoney < amount) return Swal.fire("Không đủ tiền tiết kiệm");
+    savingMoney -= amount;
+    }
+
+
+    // 🔥 thêm lên đầu mảng
+    expenses.unshift({
+        name,
+        amount,
+        category,
+        date: fullDate.getTime(),
+        source
+    });
+
+}else{
+
+    // ===== CẬP NHẬT =====
+    let old = expenses[editIndex];
+
+    // hoàn tiền cũ
+    if(old.source==="salary") salary += old.amount;
+    if(old.source==="current") currentMoney += old.amount;
+    if(old.source==="cash") cashMoney += old.amount;
+    if(old.source==="saving") savingMoney += old.amount;
+
+    // trừ tiền mới
+    if(source==="salary"){
+        if(salary < amount) return Swal.fire("Không đủ lương");
+        salary -= amount;
+    }
+
+    if(source==="current"){
+        if(currentMoney < amount) return Swal.fire("Không đủ tiền ngân hàng");
+        currentMoney -= amount;
+    }
+
+    if(source==="cash"){
+        if(cashMoney < amount) return Swal.fire("Không đủ tiền mặt");
+        cashMoney -= amount;
+    }
+
+    if(source==="saving"){
+    if(savingMoney < amount) return Swal.fire("Không đủ tiền tiết kiệm");
+    savingMoney -= amount;
+}
+
+    expenses[editIndex] = {
+        name,
+        amount,
+        category,
+        date: fullDate.getTime(),
+        source
+    };
+
+    editIndex = -1;
+    $("saveBtn").innerText = "💾 Thêm";
+}
+
+// lưu lại
+localStorage.setItem("salary",salary);
+localStorage.setItem("currentMoney",currentMoney);
+localStorage.setItem("cashMoney",cashMoney);
+localStorage.setItem("expenses",JSON.stringify(expenses));
+localStorage.setItem("savingMoney",savingMoney);
+
+
+// reset form
+$("name").value="";
+$("amount").value="";
+$("date").value="";
+$("source").value="";
+
+currentPage = 1; // quay về trang đầu
+render();
+}
+
+
+function editItem(i){
+let e=expenses[i];
+$("name").value=e.name;
+$("amount").value=e.amount.toLocaleString();
+$("category").value=e.category;
+$("date").value = new Date(e.date).toISOString().split("T")[0];
+$("source").value=e.source;
+editIndex=i;
+$("saveBtn").innerText="✏️ Cập nhật";
+window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function deleteItem(i){
+
+Swal.fire({
+title:"Xóa khoản chi này?",
+text:"Tiền sẽ được hoàn lại",
+icon:"warning",
+showCancelButton:true,
+confirmButtonText:"Xóa",
+cancelButtonText:"Hủy",
+confirmButtonColor:"#d33",      // 🔴 MÀU ĐỎ CHO NÚT XÓA
+cancelButtonColor:"#6c757d"     // màu xám cho nút Hủy
+}).then(r=>{
+
+let e=expenses[i];
+
+if(e.source==="salary")salary+=e.amount;
+if(e.source==="current")currentMoney+=e.amount;
+if(e.source==="cash")cashMoney+=e.amount;
+if(e.source==="saving")savingMoney+=e.amount;
+
+expenses.splice(i,1);
+
+localStorage.setItem("salary",salary);
+localStorage.setItem("currentMoney",currentMoney);
+localStorage.setItem("cashMoney",cashMoney);
+localStorage.setItem("expenses",JSON.stringify(expenses));
+localStorage.setItem("savingMoney",savingMoney);
+
+render();
+});
+}
+
+function resetMoney(type){
+
+Swal.fire({
+title:"Reset về 0?",
+icon:"warning",
+showCancelButton:true,
+confirmButtonText:"Reset"
+}).then(r=>{
+if(!r.isConfirmed)return;
+
+if(type==="salary"){salary=0;localStorage.setItem("salary",0);}
+if(type==="current"){currentMoney=0;localStorage.setItem("currentMoney",0);}
+if(type==="cash"){cashMoney=0;localStorage.setItem("cashMoney",0);}
+if(type==="locked"){lockedMoney=0;localStorage.setItem("lockedMoney",0);}
+if(type==="saving"){savingMoney=0;localStorage.setItem("savingMoney",0);}
+
+render();
+});
+}
+
+function render(){
+$("itemsPerPageSelect").value = itemsPerPage;
+
+$("salaryBox").textContent = salary.toLocaleString();
+$("currentBox").textContent = currentMoney.toLocaleString();
+$("cashBox").textContent = cashMoney.toLocaleString();
+$("savingBox").textContent = savingMoney.toLocaleString();
+$("lockedBox").textContent = lockedMoney;
+
+// ===== TÍNH TỔNG & THỐNG KÊ TOÀN BỘ =====
+let total = 0;
+let stats = {};
+
+expenses.forEach(e=>{
+    total += e.amount;
+    stats[e.category] = (stats[e.category] || 0) + e.amount;
+});
+
+$("totalBox").textContent = total.toLocaleString();
+
+$("remainValue").textContent =
+(salary + currentMoney + cashMoney + savingMoney).toLocaleString();
+
+
+// ===== PHÂN TRANG (CHỈ HIỂN THỊ BẢNG) =====
+$("list").innerHTML = "";
+
+let start = (currentPage - 1) * itemsPerPage;
+let end = start + itemsPerPage;
+let paginated = expenses.slice(start, end);
+
+
+paginated.forEach((e,i)=>{
+
+let realIndex = start + i;
+
+let sourceText =
+e.source==="salary"?"💼 Lương":
+e.source==="cash"?"💰 Tiền mặt":
+e.source==="saving"?"🏦 Tiết kiệm":
+"💵 Tiền ngân hàng";
+
+$("list").innerHTML+=`
+<tr>
+<td>${new Date(e.date).toLocaleString("vi-VN")}</td>
+
+<td>${e.name}</td>
+<td>${e.category}</td>
+<td>${e.amount.toLocaleString()}</td>
+<td>${sourceText}</td>
+<td>
+<button onclick="editItem(${realIndex})">✏️</button>
+<button class="danger" onclick="deleteItem(${realIndex})">❌</button>
+</td>
+</tr>`;
+});
+
+// ===== VẼ BIỂU ĐỒ TỪ TOÀN BỘ DATA =====
+if(pieChart) pieChart.destroy();
+
+pieChart = new Chart($("pieChart"),{
+type:"pie",
+data:{
+labels:Object.keys(stats),
+datasets:[{
+data:Object.values(stats)
+}]
+}
+});
+
+
+// ==== HIỂN THỊ ====
+renderPagination();
+}
+
+function renderPagination(){
+
+let totalPages = Math.ceil(expenses.length / itemsPerPage);
+let pagination = $("pagination");
+pagination.innerHTML="";
+
+if(totalPages <= 1) return;
+
+// nút trước
+if(currentPage > 1){
+pagination.innerHTML+=
+`<button onclick="goToPage(${currentPage-1})">«</button>`;
+}
+
+// số trang
+for(let i=1;i<=totalPages;i++){
+pagination.innerHTML+=`
+<button class="${i===currentPage?'active':''}"
+onclick="goToPage(${i})">${i}</button>`;
+}
+
+// nút sau
+if(currentPage < totalPages){
+pagination.innerHTML+=
+`<button onclick="goToPage(${currentPage+1})">»</button>`;
+}
+}
+
+function goToPage(page){
+currentPage = page;
+render();
+}
+
+function changeItemsPerPage(){
+itemsPerPage = Number($("itemsPerPageSelect").value);
+currentPage = 1;
+render();
+}
+
+
+function exportPDF(){
+  let selectedCategory = $("exportCategory").value;
+  let today = new Date().toLocaleDateString("vi-VN");
+
+  let total = 0;
+
+  let filtered = selectedCategory === "all"
+	? expenses
+	: expenses.filter(e => e.category === selectedCategory);
+
+	let rows = filtered.map(e=>{
+    total += e.amount;
+    return `
+      <tr>
+        <td>${new Date(Number(e.date)).toLocaleString("vi-VN",{hour12:false})}</td>
+        <td>${e.name}</td>
+        <td>${e.category}</td>
+        <td style="text-align:right">${e.amount.toLocaleString()}</td>
+      </tr>
+    `;
+  }).join("");
+
+  let remain = salary + currentMoney + cashMoney;
+
+  let win = window.open("");
+
+  win.document.write(`
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Báo cáo chi tiêu</title>
+    <style>
+      body{
+        font-family: Arial;
+        padding:20px;
+      }
+      h2{
+        text-align:center;
+        margin-bottom:30px;
+      }
+      table{
+        width:100%;
+        border-collapse:collapse;
+        margin-top:15px;
+      }
+      th,td{
+        border:1px solid #999;
+        padding:8px;
+      }
+      th{
+        background:#f2f2f2;
+      }
+      .bold{
+        font-weight:bold;
+      }
+      .right{
+        text-align:right;
+      }
+    </style>
+  </head>
+  <body>
+
+  <h2>BÁO CÁO CHI TIÊU CÁ NHÂN</h2>
+  <p><b>Ngày xuất:</b> ${today}</p>
+
+  <p><b>Lương hiện còn:</b> ${salary.toLocaleString()} VND</p>
+  <p><b>Tiền mặt hiện còn:</b> ${cashMoney.toLocaleString()} VND</p>
+  <p><b>Tiền bank hiện còn:</b> ${currentMoney.toLocaleString()} VND</p>
+  <p><b>Tiền không lưu thông:</b> ${lockedMoney} </p>
+
+  <table>
+    <tr>
+      <th>Ngày</th>
+      <th>Chi tiết</th>
+      <th>Danh mục</th>
+      <th>Số tiền</th>
+    </tr>
+
+    ${rows}
+
+    <tr class="bold">
+      <td colspan="3">TỔNG CHI</td>
+      <td class="right">${total.toLocaleString()}</td>
+    </tr>
+
+    <tr class="bold">
+      <td colspan="3">TỔNG CÒN LẠI</td>
+      <td class="right">${remain.toLocaleString()}</td>
+    </tr>
+
+  </table>
+
+  </body>
+  </html>
+  `);
+
+  win.print();
+}
+
+function printReport(){
+
+let total = 0;
+
+let rows = expenses.map(e=>{
+total += e.amount;
+return `
+<tr>
+<td>${new Date(Number(e.date)).toLocaleString("vi-VN",{hour12:false})}</td>
+<td>${e.name}</td>
+<td>${e.category}</td>
+<td style="text-align:right">${e.amount.toLocaleString()}</td>
+</tr>
+`;
+}).join("");
+
+let remain = salary + currentMoney + cashMoney;
+
+let printWindow = window.open("", "", "width=900,height=700");
+
+printWindow.document.write(`
+<html>
+<head>
+<title>In báo cáo</title>
+<style>
+body{font-family:Arial;padding:30px}
+h2{text-align:center;margin-bottom:30px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #999;padding:8px}
+th{background:#f2f2f2}
+.right{text-align:right}
+.bold{font-weight:bold}
+</style>
+</head>
+<body>
+
+<h2>BÁO CÁO CHI TIÊU</h2>
+
+<p><b>Lương còn:</b> ${salary.toLocaleString()} VND</p>
+<p><b>Tiền mặt hiện còn:</b> ${cashMoney.toLocaleString()} VND</p>
+<p><b>Tiền bank hiện còn:</b> ${currentMoney.toLocaleString()} VND</p>
+<p><b>Tiền không lưu thông:</b> ${lockedMoney} cái</p>
+
+<table>
+<tr>
+<th>Ngày</th>
+<th>Tên</th>
+<th>Danh mục</th>
+<th>Số tiền</th>
+</tr>
+
+${rows}
+
+<tr class="bold">
+<td colspan="3">TỔNG CHI</td>
+<td class="right">${total.toLocaleString()}</td>
+</tr>
+
+<tr class="bold">
+<td colspan="3">TỔNG CÒN LẠI</td>
+<td class="right">${remain.toLocaleString()}</td>
+</tr>
+
+</table>
+
+</body>
+</html>
+`);
+
+printWindow.document.close();
+printWindow.focus();
+printWindow.print();
+}
+
+
+
+// ==== SỬA TIỀN ====
+function editMoney(type){
+
+let currentValue =
+type==="salary" ? salary :
+type==="cash" ? cashMoney :
+type==="saving" ? savingMoney :
+currentMoney;
+
+Swal.fire({
+title:"Chỉnh số tiền",
+input:"text",
+inputValue: currentValue.toLocaleString(),
+showCancelButton:true,
+confirmButtonText:"Lưu",
+cancelButtonText:"Hủy",
+confirmButtonColor:"#191970",
+cancelButtonColor:"#6c757d",
+
+didOpen: () => {
+    const input = Swal.getInput();
+    input.addEventListener("input", function(){
+        let value = this.value.replace(/\D/g,"");
+        this.value = value.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+    });
+}
+
+}).then(result=>{
+
+if(!result.isConfirmed) return;
+
+let newValue = Number(result.value.replace(/\./g,""));
+if(isNaN(newValue)) return;
+
+if(type==="salary"){
+salary = newValue;
+localStorage.setItem("salary",salary);
+}
+
+if(type==="cash"){
+cashMoney = newValue;
+localStorage.setItem("cashMoney",cashMoney);
+}
+
+if(type==="current"){
+currentMoney = newValue;
+localStorage.setItem("currentMoney",currentMoney);
+}
+
+if(type==="saving"){
+savingMoney = newValue;
+localStorage.setItem("savingMoney",savingMoney);
+}
+
+render();
+
+});
+}
+
+
+// ================= BACKUP NÂNG CẤP =================
+
+function autoBackup(){
+
+    let today = new Date().toISOString().split("T")[0];
+
+    if(localStorage.getItem("backupDate") !== today){
+
+        let backupData = {
+            expenses,
+            salary,
+            currentMoney,
+            cashMoney,
+            lockedMoney
+        };
+
+        localStorage.setItem("backup_"+today, JSON.stringify(backupData));
+        localStorage.setItem("backupDate", today);
+    }
+}
+
+
+// Hiển thị danh sách backup
+function showBackupList(){
+
+    let keys = Object.keys(localStorage).filter(k => k.startsWith("backup_"));
+
+    if(keys.length === 0){
+        Swal.fire("Chưa có bản backup nào");
+        return;
+    }
+
+    let listHTML = keys.map(k=>{
+        let date = k.replace("backup_","");
+        return `
+        <button onclick="restoreBackup('${k}')" 
+        style="width:100%;margin:5px 0;padding:8px;border-radius:6px;border:none;background:#4CAF50;color:white">
+        Khôi phục ${date}
+        </button>
+        `;
+    }).join("");
+
+    Swal.fire({
+        title:"Danh sách backup",
+        html:listHTML,
+        showConfirmButton:false
+    });
+}
+
+
+// Khôi phục backup
+function restoreBackup(key){
+
+    let data = JSON.parse(localStorage.getItem(key));
+
+    if(!data) return;
+
+    expenses = data.expenses || [];
+    salary = data.salary || 0;
+    currentMoney = data.currentMoney || 0;
+    cashMoney = data.cashMoney || 0;
+    lockedMoney = data.lockedMoney || 0;
+
+    localStorage.setItem("expenses", JSON.stringify(expenses));
+    localStorage.setItem("salary", salary);
+    localStorage.setItem("currentMoney", currentMoney);
+    localStorage.setItem("cashMoney", cashMoney);
+    localStorage.setItem("lockedMoney", lockedMoney);
+
+    render();
+
+    Swal.fire("Đã khôi phục thành công");
+}
+
+autoBackup();
+render();
+</script>
+</body>
+</html>

@@ -621,31 +621,41 @@ renderPagination();
 }
 
 function renderPagination(){
+    let totalPages = Math.ceil(expenses.length / itemsPerPage);
+    let pagination = $("pagination");
+    pagination.innerHTML="";
 
-let totalPages = Math.ceil(expenses.length / itemsPerPage);
-let pagination = $("pagination");
-pagination.innerHTML="";
+    if(totalPages <= 1) return;
 
-if(totalPages <= 1) return;
+    // Nút về trang đầu («)
+    if(currentPage > 1){
+        pagination.innerHTML += `<button onclick="goToPage(1)">«</button>`;
+        pagination.innerHTML += `<button onclick="goToPage(${currentPage-1})">‹</button>`;
+    }
 
-// nút trước
-if(currentPage > 1){
-pagination.innerHTML+=
-`<button onclick="goToPage(${currentPage-1})">«</button>`;
-}
+    // Hiển thị giới hạn các trang xung quanh trang hiện tại để không bị tràn
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
 
-// số trang
-for(let i=1;i<=totalPages;i++){
-pagination.innerHTML+=`
-<button class="${i===currentPage?'active':''}"
-onclick="goToPage(${i})">${i}</button>`;
-}
+    if(startPage > 1){
+        pagination.innerHTML += `<button disabled style="background:#ccc">...</button>`;
+    }
 
-// nút sau
-if(currentPage < totalPages){
-pagination.innerHTML+=
-`<button onclick="goToPage(${currentPage+1})">»</button>`;
-}
+    for(let i = startPage; i <= endPage; i++){
+        pagination.innerHTML += `
+            <button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>
+        `;
+    }
+
+    if(endPage < totalPages){
+        pagination.innerHTML += `<button disabled style="background:#ccc">...</button>`;
+    }
+
+    // Nút tới trang sau (›) và trang cuối (»)
+    if(currentPage < totalPages){
+        pagination.innerHTML += `<button onclick="goToPage(${currentPage+1})">›</button>`;
+        pagination.innerHTML += `<button onclick="goToPage(${totalPages})">»</button>`;
+    }
 }
 
 function goToPage(page){
